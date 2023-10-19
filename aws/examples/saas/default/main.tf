@@ -20,7 +20,7 @@ module "orca_aws_onboarding_saas" {
 #  source = "https://orcadev<env_name>-api.devenv<number>.orcasecurity.net/api/onboarding/terraform?archive=zip&provider=aws"
 
   deployment_type  = "saas"
-  role_external_id = "38a0f818-a3e5-420f-ad35-0404030a6c77"
+  role_external_id = <Your Orca Tenant UUID>
 }
 
 output "orca_role_arn" {
