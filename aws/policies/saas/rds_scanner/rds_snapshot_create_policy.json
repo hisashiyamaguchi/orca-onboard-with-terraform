@@ -1,0 +1,48 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "rds:AddTagsToResource",
+          "rds:DeleteDBSnapshot",
+          "rds:DeleteDBClusterSnapshot"
+        ],
+        "Resource": [
+          "arn:${partition}:rds:*:*:snapshot:*",
+          "arn:${partition}:rds:*:*:cluster-snapshot:*"
+        ],
+        "Condition": {
+          "StringLike": {
+            "aws:ResourceTag/Orca": "*"
+          },
+          "StringNotLikeIfExists": {
+            "aws:ResourceTag/OrcaOptOut": "*"
+          }
+        }
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "rds:CreateDBSnapshot",
+          "rds:CreateDBClusterSnapshot",
+          "rds:CopyDBSnapshot",
+          "rds:CopyDBClusterSnapshot"
+        ],
+        "Resource": [
+          "arn:${partition}:rds:*:*:db:*",
+          "arn:${partition}:rds:*:*:cluster:*",
+          "arn:${partition}:rds:*:*:snapshot:*",
+          "arn:${partition}:rds:*:*:cluster-snapshot:*"
+        ],
+        "Condition": {
+          "ForAnyValue:StringEquals": {
+            "aws:TagKeys": "Orca"
+          },
+          "StringNotLikeIfExists": {
+            "aws:ResourceTag/OrcaOptOut": "*"
+          }
+        }
+      }
+    ]
+}

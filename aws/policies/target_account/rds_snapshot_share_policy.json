@@ -1,0 +1,25 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Condition": {
+                "StringLike": {
+                    "aws:ResourceTag/Orca": "*"
+                },
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "rds:ModifyDBSnapshotAttribute",
+                "rds:ModifyDBClusterSnapshotAttribute"
+            ],
+            "Resource": [
+                "arn:${partition}:rds:*:*:snapshot:*",
+                "arn:${partition}:rds:*:*:cluster-snapshot:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "ModifyDbSnapshots"
+        }
+    ]
+}

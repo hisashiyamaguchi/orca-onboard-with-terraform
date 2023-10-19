@@ -1,0 +1,742 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Outputs": {
+        "OrcaRoleArn": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "OrcaSecurityRole",
+                    "Arn"
+                ]
+            }
+        },
+        "OrcaSideScannerRoleArn": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "OrcaSideScannerRole",
+                    "Arn"
+                ]
+            }
+        }
+    },
+    "Parameters": {
+        "ExternalId": {
+            "Type": "String"
+        },
+        "SecretManagerAccess": {
+            "Type": "String",
+            "Default": "true",
+            "AllowedValues": [
+                "true",
+                "false"
+            ]
+        },
+        "DeployRdsScanner": {
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": [
+                "true",
+                "false"
+            ]
+        },
+        "RoleName": {
+            "Type": "String",
+            "Default": "OrcaSecurityRoleSA"
+        },
+        "ScannerRoleName": {
+            "Type": "String",
+            "Default": "OrcaSideScannerRole"
+        },
+        "PolicyName": {
+            "Type": "String",
+            "Default": "OrcaSecurityPolicySA"
+        },
+        "ScannerPolicyName": {
+            "Type": "String",
+            "Default": "OrcaSideScannerPolicy"
+        },
+        "ScannerAccountId": {
+            "Type": "String"
+        }
+    },
+    "Conditions": {
+        "SecretManagerAccessAllowed": {
+            "Fn::Equals": [
+                {
+                    "Ref": "SecretManagerAccess"
+                },
+                "true"
+            ]
+        },
+        "DeployRdsScanner": {
+            "Fn::Equals": [
+                {
+                    "Ref": "DeployRdsScanner"
+                },
+                "true"
+            ]
+        }
+    },
+    "Resources": {
+        "OrcaSecurityPolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "Description": "Orca Security Account Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:CreateTags"
+                            ],
+                            "Resource": "arn:aws:ec2:*::snapshot/*",
+                            "Condition": {
+                                "ForAnyValue:StringEquals": {
+                                    "aws:TagKeys": [
+                                        "Orca"
+                                    ]
+                                },
+                                "StringEquals": {
+                                    "ec2:CreateAction": [
+                                        "CreateSnapshot",
+                                        "CreateSnapshots",
+                                        "CopySnapshot"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:CreateSnapshot",
+                                "ec2:CreateSnapshots"
+                            ],
+                            "Resource": "*",
+                            "Condition": {
+                                "StringNotLikeIfExists": {
+                                    "ec2:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "ec2:DeleteSnapshot",
+                            "Resource": "*",
+                            "Condition": {
+                                "StringLike": {
+                                    "ec2:ResourceTag/Orca": "*"
+                                },
+                                "StringNotLikeIfExists": {
+                                    "ec2:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "ManagedPolicyName": {
+                    "Ref": "PolicyName"
+                }
+            }
+        },
+        "OrcaSideScannerPolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "Description": "Orca Side Scanner Account Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:CreateTags"
+                            ],
+                            "Resource": "arn:aws:ec2:*::snapshot/*",
+                            "Condition": {
+                                "ForAnyValue:StringEquals": {
+                                    "aws:TagKeys": [
+                                        "Orca"
+                                    ]
+                                },
+                                "StringEquals": {
+                                    "ec2:CreateAction": [
+                                        "CreateSnapshot",
+                                        "CreateSnapshots",
+                                        "CopySnapshot"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:CopySnapshot",
+                                "ec2:ModifySnapshotAttribute"
+                            ],
+                            "Resource": "*",
+                            "Condition": {
+                                "StringNotLikeIfExists": {
+                                    "ec2:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:DescribeSnapshots",
+                                "ec2:DescribeImages"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:Decrypt",
+                                "kms:Encrypt",
+                                "kms:ReEncryptFrom",
+                                "kms:ReEncryptTo",
+                                "kms:CreateGrant",
+                                "kms:GenerateDataKeyWithoutPlaintext"
+                            ],
+                            "Resource": "*",
+                            "Condition": {
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                },
+                                "StringLike": {
+                                    "kms:ViaService": "ec2.*.amazonaws.com"
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:DescribeKey",
+                                "kms:GetKeyPolicy",
+                                "kms:PutKeyPolicy"
+                            ],
+                            "Resource": "*",
+                            "Condition": {
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "ManagedPolicyName": {
+                    "Ref": "ScannerPolicyName"
+                }
+            }
+        },
+        "OrcaSecuritySecretsManagerPolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Condition": "SecretManagerAccessAllowed",
+            "Properties": {
+                "Description": "Orca Security Secrets Manager Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "secretsmanager:GetSecretValue"
+                            ],
+                            "Resource": "arn:aws:secretsmanager:*:*:secret:*",
+                            "Condition": {
+                                "StringLike": {
+                                    "secretsmanager:ResourceTag/Orca": "SecretAccess"
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:Decrypt"
+                            ],
+                            "Resource": "*",
+                            "Condition": {
+                                "StringLike": {
+                                    "aws:ResourceTag/Orca": "SecretAccess",
+                                    "kms:ViaService": [
+                                        "secretsmanager.*.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "OrcaSecurityViewOnlyExtrasPolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "Description": "Orca Security Extras For View Only Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "access-analyzer:ListAnalyzers",
+                                "acm:DescribeCertificate",
+                                "acm:GetCertificate",
+                                "apigateway:GET",
+                                "application-autoscaling:Describe*",
+                                "appsync:Get*",
+                                "appsync:List*",
+                                "autoscaling-plans:Describe*",
+                                "backup:Get*",
+                                "backup:List*",
+                                "cassandra:Select",
+                                "cloudfront:Get*",
+                                "cloudhsm:DescribeClusters",
+                                "cloudtrail:Describe*",
+                                "cloudtrail:Get*",
+                                "cloudtrail:List*",
+                                "cloudwatch:Describe*",
+                                "codebuild:BatchGet*",
+                                "codebuild:List*",
+                                "config:Get*",
+                                "dlm:Get*",
+                                "dms:Describe*",
+                                "dynamodb:Describe*",
+                                "dynamodb:List*",
+                                "ec2:Describe*",
+                                "ec2:GetEbsEncryptionByDefault",
+                                "ec2:List*",
+                                "ec2:SearchTransitGatewayRoutes",
+                                "ecr:BatchGetImage",
+                                "ecr:Describe*",
+                                "ecr:Get*",
+                                "ecr:List*",
+                                "eks:Describe*",
+                                "eks:List*",
+                                "elasticache:Describe*",
+                                "elasticfilesystem:Describe*",
+                                "elasticfilesystem:List*",
+                                "elasticloadbalancing:Describe*",
+                                "es:Describe*",
+                                "es:List*",
+                                "events:List*",
+                                "glacier:Describe*",
+                                "glacier:Get*",
+                                "globalaccelerator:List*",
+                                "glue:GetDataCatalogEncryptionSettings",
+                                "glue:GetDatabases",
+                                "glue:GetDevEndpoints",
+                                "glue:GetResourcePolicy",
+                                "glue:GetSecurityConfigurations",
+                                "guardduty:Get*",
+                                "guardduty:List*",
+                                "iam:Generate*",
+                                "iam:Get*",
+                                "iam:Simulate*",
+                                "kafka:Describe*",
+                                "kafka:List*",
+                                "kms:Describe*",
+                                "kms:Get*",
+                                "kms:List*",
+                                "lakeformation:GetDataLakeSettings",
+                                "lakeformation:GetEffectivePermissionsForPath",
+                                "lakeformation:ListResources",
+                                "lambda:Get*",
+                                "logs:FilterLogEvents",
+                                "logs:Get*",
+                                "logs:ListTagsLogGroup",
+                                "logs:StartQuery",
+                                "logs:TestMetricFilter",
+                                "memorydb:Describe*",
+                                "memorydb:List*",
+                                "mq:Describe*",
+                                "mq:List*",
+                                "organizations:Describe*",
+                                "qldb:DescribeLedger",
+                                "qldb:ListLedgers",
+                                "rds:List*",
+                                "redshift:Describe*",
+                                "resource-groups:Get*",
+                                "resource-groups:List*",
+                                "resource-groups:Search*",
+                                "route53:Test*",
+                                "route53domains:Check*",
+                                "route53domains:Get*",
+                                "route53domains:View*",
+                                "s3:Get*",
+                                "s3:List*",
+                                "secretsmanager:Describe*",
+                                "secretsmanager:GetResourcePolicy",
+                                "secretsmanager:List*",
+                                "serverlessrepo:Get*",
+                                "serverlessrepo:List*",
+                                "ses:GetIdentityDkimAttributes",
+                                "ses:GetIdentityPolicies",
+                                "ses:GetIdentityVerificationAttributes",
+                                "sns:Get*",
+                                "sqs:GetQueueAttributes",
+                                "sqs:ListQueueTags",
+                                "ssm:Describe*",
+                                "ssm:GetParameter*",
+                                "ssm:GetParametersByPath",
+                                "ssm:List*",
+                                "sso:DescribePermissionSet",
+                                "sso:GetInlinePolicyForPermissionSet",
+                                "sso:ListAccountAssignments",
+                                "sso:ListInstances",
+                                "sso:ListManagedPoliciesInPermissionSet",
+                                "sso:ListPermissionSets",
+                                "identitystore:DescribeGroup",
+                                "identitystore:DescribeUser",
+                                "identitystore:ListGroups",
+                                "identitystore:ListUsers",
+                                "tag:Get*",
+                                "waf-regional:Get*",
+                                "waf:Get*"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                }
+            }
+        },
+        "OrcaRdsSnapshotCreatePolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Condition": "DeployRdsScanner",
+            "Properties": {
+                "Description": "Orca Security RDS Snapshot Creation Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "rds:AddTagsToResource",
+                                "rds:DeleteDBSnapshot",
+                                "rds:DeleteDBClusterSnapshot"
+                            ],
+                            "Resource": [
+                                "arn:aws:rds:*:*:snapshot:*",
+                                "arn:aws:rds:*:*:cluster-snapshot:*"
+                            ],
+                            "Condition": {
+                                "StringLike": {
+                                    "aws:ResourceTag/Orca": "*"
+                                },
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "rds:CreateDBSnapshot",
+                                "rds:CreateDBClusterSnapshot",
+                                "rds:CopyDBSnapshot",
+                                "rds:CopyDBClusterSnapshot"
+                            ],
+                            "Resource": [
+                                "arn:aws:rds:*:*:db:*",
+                                "arn:aws:rds:*:*:cluster:*",
+                                "arn:aws:rds:*:*:snapshot:*",
+                                "arn:aws:rds:*:*:cluster-snapshot:*"
+                            ],
+                            "Condition": {
+                                "ForAnyValue:StringEquals": {
+                                    "aws:TagKeys": "Orca"
+                                },
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "OrcaRdsSnapshotReencryptPolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Condition": "DeployRdsScanner",
+            "Properties": {
+                "Description": "Orca Security RDS Snapshot Re-Encryption Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "CreateGrantForDbSnapshotReencryption",
+                            "Effect": "Allow",
+                            "Action": "kms:CreateGrant",
+                            "Resource": "arn:aws:kms:*:*:key/*",
+                            "Condition": {
+                                "ForAllValues:StringLike": {
+                                    "kms:GrantOperations": [
+                                        "DescribeKey",
+                                        "Decrypt",
+                                        "Encrypt",
+                                        "GenerateDataKeyWithoutPlaintext",
+                                        "CreateGrant",
+                                        "RetireGrant"
+                                    ]
+                                },
+                                "Bool": {
+                                    "kms:GrantIsForAWSResource": true
+                                },
+                                "StringLike": {
+                                    "aws:ResourceAccount": "${aws:PrincipalTag/OrcaScannerAccountId, '*'}"
+                                },
+                                "ForAnyValue:StringLike": {
+                                    "kms:ViaService": "rds.*.amazonaws.com"
+                                }
+                            }
+                        },
+                        {
+                            "Sid": "DescribeKeyForDbSnapshotReencryption",
+                            "Effect": "Allow",
+                            "Action": "kms:DescribeKey",
+                            "Resource": "arn:aws:kms:*:*:key/*",
+                            "Condition": {
+                                "StringLike": {
+                                    "aws:ResourceAccount": "${aws:PrincipalTag/OrcaScannerAccountId, '*'}"
+                                },
+                                "ForAnyValue:StringLike": {
+                                    "kms:ViaService": "rds.*.amazonaws.com"
+                                }
+                            }
+                        },
+                        {
+                            "Sid": "Tag",
+                            "Effect": "Allow",
+                            "Action": "rds:AddTagsToResource",
+                            "Resource": [
+                                "arn:aws:rds:*:*:snapshot:*",
+                                "arn:aws:rds:*:*:cluster-snapshot:*"
+                            ],
+                            "Condition": {
+                                "StringLike": {
+                                    "aws:ResourceTag/Orca": "*"
+                                },
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        },
+                        {
+                            "Sid": "CopyDbSnapshots",
+                            "Effect": "Allow",
+                            "Action": [
+                                "rds:CopyDBSnapshot",
+                                "rds:CopyDBClusterSnapshot"
+                            ],
+                            "Resource": [
+                                "arn:aws:rds:*:*:snapshot:*",
+                                "arn:aws:rds:*:*:cluster-snapshot:*"
+                            ],
+                            "Condition": {
+                                "ForAnyValue:StringEquals": {
+                                    "aws:TagKeys": "Orca"
+                                },
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "OrcaRdsSnapshotSharePolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Condition": "DeployRdsScanner",
+            "Properties": {
+                "Description": "Orca Security RDS Snapshot Sharing Policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "ModifyDbSnapshots",
+                            "Effect": "Allow",
+                            "Action": [
+                                "rds:ModifyDBSnapshotAttribute",
+                                "rds:ModifyDBClusterSnapshotAttribute"
+                            ],
+                            "Resource": [
+                                "arn:aws:rds:*:*:snapshot:*",
+                                "arn:aws:rds:*:*:cluster-snapshot:*"
+                            ],
+                            "Condition": {
+                                "StringLike": {
+                                    "aws:ResourceTag/Orca": "*"
+                                },
+                                "StringNotLikeIfExists": {
+                                    "aws:ResourceTag/OrcaOptOut": "*"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "OrcaSecurityRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": {
+                    "Ref": "RoleName"
+                },
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": "arn:aws:iam::976280145156:root"
+                            },
+                            "Action": "sts:AssumeRole",
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": {
+                                        "Ref": "ExternalId"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": {
+                    "Fn::Split": [
+                        ",",
+                        {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Fn::Join": [
+                                            ",",
+                                            [
+                                                "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess",
+                                                {
+                                                    "Ref": "OrcaSecurityPolicy"
+                                                },
+                                                {
+                                                    "Ref": "OrcaSecurityViewOnlyExtrasPolicy"
+                                                }
+                                            ]
+                                        ]
+                                    },
+                                    {
+                                        "Fn::If": [
+                                            "DeployRdsScanner",
+                                            {
+                                                "Fn::Sub": [
+                                                    ",${RdsCreateSnapshotPolicyArn}",
+                                                    {
+                                                        "RdsCreateSnapshotPolicyArn": {
+                                                            "Ref": "OrcaRdsSnapshotCreatePolicy"
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            ""
+                                        ]
+                                    }
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "OrcaSideScannerRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": {
+                    "Ref": "ScannerRoleName"
+                },
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::Sub": [
+                                        "arn:aws:iam::${ScannerAccountId}:root",
+                                        {
+                                            "ScannerAccountId": {
+                                                "Ref": "ScannerAccountId"
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "Action": "sts:AssumeRole",
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": {
+                                        "Ref": "ExternalId"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": {
+                    "Fn::Split": [
+                        ",",
+                        {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "OrcaSideScannerPolicy"
+                                    },
+                                    {
+                                        "Fn::If": [
+                                            "SecretManagerAccessAllowed",
+                                            {
+                                                "Fn::Sub": [
+                                                    ",${SecretsManagerPolicyArn}",
+                                                    {
+                                                        "SecretsManagerPolicyArn": {
+                                                            "Ref": "OrcaSecuritySecretsManagerPolicy"
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            ""
+                                        ]
+                                    },
+                                    {
+                                        "Fn::If": [
+                                            "DeployRdsScanner",
+                                            {
+                                                "Fn::Sub": [
+                                                    ",${RdsReencryptSnapshotPolicyArn},${RdsShareSnapshotPolicyArn}",
+                                                    {
+                                                        "RdsReencryptSnapshotPolicyArn": {
+                                                            "Ref": "OrcaRdsSnapshotReencryptPolicy"
+                                                        },
+                                                        "RdsShareSnapshotPolicyArn": {
+                                                            "Ref": "OrcaRdsSnapshotSharePolicy"
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            ""
+                                        ]
+                                    }
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "OrcaScannerAccountId",
+                        "Value": {
+                            "Ref": "ScannerAccountId"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

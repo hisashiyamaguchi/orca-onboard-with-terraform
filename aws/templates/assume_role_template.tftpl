@@ -1,0 +1,18 @@
+{
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Action" : "sts:AssumeRole",
+        "Principal" : {
+          "AWS" : "arn:${aws_partition}:iam::${vendor_account_id}:root"
+        },
+        "Condition" : {
+          "StringEquals" : {
+            "sts:ExternalId" : "${role_external_id}"
+          }
+        },
+        "Effect" : "Allow",
+        "Sid" : ""
+      }
+    ]
+  }

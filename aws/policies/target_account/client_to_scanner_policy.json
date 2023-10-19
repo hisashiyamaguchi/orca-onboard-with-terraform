@@ -1,0 +1,81 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Condition": {
+                "StringEquals": {
+                    "ec2:CreateAction": [
+                        "CreateSnapshot",
+                        "CreateSnapshots",
+                        "CopySnapshot"
+                    ]
+                },
+                "ForAnyValue:StringEquals": {
+                    "aws:TagKeys": [
+                        "Orca"
+                    ]
+                }
+            },
+            "Action": [
+                "ec2:CreateTags"
+            ],
+            "Resource": "arn:${partition}:ec2:*::snapshot/*",
+            "Effect": "Allow"
+        },
+        {
+            "Condition": {
+                "StringNotLikeIfExists": {
+                    "ec2:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "ec2:CopySnapshot",
+                "ec2:ModifySnapshotAttribute"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "ec2:DescribeSnapshots",
+                "ec2:DescribeImages"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Condition": {
+                "StringLike": {
+                    "kms:ViaService": "ec2.*.amazonaws.com"
+                },
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncryptFrom",
+                "kms:ReEncryptTo",
+                "kms:CreateGrant",
+                "kms:GenerateDataKeyWithoutPlaintext"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Condition": {
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "kms:DescribeKey",
+                "kms:GetKeyPolicy",
+                "kms:PutKeyPolicy"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        }
+    ]
+}

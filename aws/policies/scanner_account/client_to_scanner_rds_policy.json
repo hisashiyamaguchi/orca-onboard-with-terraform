@@ -1,0 +1,183 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Condition": {
+                "StringLike": {
+                    "iam:AWSServiceName": "rds.amazonaws.com"
+                }
+            },
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "arn:${partition}:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS",
+            "Effect": "Allow",
+            "Sid": "CreateServiceLinkedRole"
+        },
+        {
+            "Condition": {
+                "StringLike": {
+                    "aws:ResourceTag/Orca": "*"
+                },
+                "ForAnyValue:StringEquals": {
+                    "aws:TagKeys": "Orca"
+                },
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "rds:RestoreDBClusterFromSnapshot",
+                "rds:RestoreDBInstanceFromDBSnapshot"
+            ],
+            "Resource": [
+                "arn:${partition}:rds:*:*:db:*",
+                "arn:${partition}:rds:*:*:cluster:*",
+                "arn:${partition}:rds:*:*:snapshot:*",
+                "arn:${partition}:rds:*:*:cluster-snapshot:*",
+                "arn:${partition}:rds:*:*:pg:*",
+                "arn:${partition}:rds:*:*:cluster-pg:*",
+                "arn:${partition}:rds:*:*:subgrp:*",
+                "arn:${partition}:rds:*:*:og:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "RestoreDBFromSnapshot"
+        },
+        {
+            "Condition": {
+                "StringNotEquals": {
+                    "aws:ResourceAccount": "$${aws:PrincipalAccount}"
+                },
+                "ForAnyValue:StringEquals": {
+                    "aws:TagKeys": "Orca"
+                }
+            },
+            "Action": [
+                "rds:RestoreDBClusterFromSnapshot",
+                "rds:RestoreDBInstanceFromDBSnapshot"
+            ],
+            "Resource": [
+                "arn:${partition}:rds:*:*:db:*",
+                "arn:${partition}:rds:*:*:cluster:*",
+                "arn:${partition}:rds:*:*:snapshot:*",
+                "arn:${partition}:rds:*:*:cluster-snapshot:*",
+                "arn:${partition}:rds:*:*:pg:*",
+                "arn:${partition}:rds:*:*:cluster-pg:*",
+                "arn:${partition}:rds:*:*:subgrp:*",
+                "arn:${partition}:rds:*:*:og:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "RestoreDBFromSnapshotInAnotherAccount"
+        },
+        {
+            "Condition": {
+                "StringLike": {
+                    "aws:ResourceTag/Orca": "*"
+                },
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "rds:DeleteDBInstance",
+                "rds:DeleteDBCluster",
+                "rds:DeleteDBSnapshot",
+                "rds:DeleteDBClusterSnapshot",
+                "rds:DeleteDBParameterGroup",
+                "rds:DeleteDBClusterParameterGroup",
+                "rds:DeleteDBSubnetGroup",
+                "rds:DeleteOptionGroup"
+            ],
+            "Resource": [
+                "arn:${partition}:rds:*:*:db:*",
+                "arn:${partition}:rds:*:*:cluster:*",
+                "arn:${partition}:rds:*:*:snapshot:*",
+                "arn:${partition}:rds:*:*:cluster-snapshot:*",
+                "arn:${partition}:rds:*:*:pg:*",
+                "arn:${partition}:rds:*:*:cluster-pg:*",
+                "arn:${partition}:rds:*:*:subgrp:*",
+                "arn:${partition}:rds:*:*:og:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "DeleteRDSResource"
+        },
+        {
+            "Condition": {
+                "StringLike": {
+                    "aws:ResourceTag/Orca": "*"
+                },
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": "rds:AddTagsToResource",
+            "Resource": [
+                "arn:${partition}:rds:*:*:db:*",
+                "arn:${partition}:rds:*:*:cluster:*",
+                "arn:${partition}:rds:*:*:snapshot:*",
+                "arn:${partition}:rds:*:*:cluster-snapshot:*",
+                "arn:${partition}:rds:*:*:pg:*",
+                "arn:${partition}:rds:*:*:cluster-pg:*",
+                "arn:${partition}:rds:*:*:subgrp:*",
+                "arn:${partition}:rds:*:*:og:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "TagRDSResource"
+        },
+        {
+            "Condition": {
+                "ForAnyValue:StringEquals": {
+                    "aws:TagKeys": "Orca"
+                },
+                "StringNotLikeIfExists": {
+                    "aws:ResourceTag/OrcaOptOut": "*"
+                }
+            },
+            "Action": [
+                "rds:CreateDbInstance",
+                "rds:CreateDbCluster",
+                "rds:CreateDBSnapshot",
+                "rds:CreateDBClusterSnapshot",
+                "rds:CopyDBSnapshot",
+                "rds:CopyDBClusterSnapshot",
+                "rds:CreateDBParameterGroup",
+                "rds:CreateDBClusterParameterGroup",
+                "rds:CreateDBSubnetGroup",
+                "rds:CreateOptionGroup"
+            ],
+            "Resource": [
+                "arn:${partition}:rds:*:*:db:*",
+                "arn:${partition}:rds:*:*:cluster:*",
+                "arn:${partition}:rds:*:*:snapshot:*",
+                "arn:${partition}:rds:*:*:cluster-snapshot:*",
+                "arn:${partition}:rds:*:*:pg:*",
+                "arn:${partition}:rds:*:*:cluster-pg:*",
+                "arn:${partition}:rds:*:*:subgrp:*",
+                "arn:${partition}:rds:*:*:og:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "CreateOrCopyRDSResource"
+        },
+        {
+            "Action": [
+                "rds:Describe*",
+                "rds:List*",
+                "rds:DownloadDBLogFilePortion",
+                "rds:DownloadCompleteDBLogFile"
+            ],
+            "Resource": "*",
+            "Effect": "Allow",
+            "Sid": "InspectRDSResource"
+        },
+        {
+            "Action": [
+                "rds:ModifyDBInstance",
+                "rds:ModifyDBCluster"
+            ],
+            "Resource": [
+                "arn:${partition}:rds:*:*:db:*",
+                "arn:${partition}:rds:*:*:cluster:*"
+            ],
+            "Effect": "Allow",
+            "Sid": "ModifyRDSResource"
+        }
+    ]
+}
