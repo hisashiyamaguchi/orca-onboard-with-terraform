@@ -90,7 +90,7 @@ Go Orca UI, and hit "Settings" -> "Account Center" -> "+Connect Account". Hit AW
 </div>
 <br>
 
-Put your Orca ARN and hit "Connect" - that's it!
+Put your Orca ARN and hit "Connect Account" - that's it!
 <br>
 <div align="center">
 <img src="./images/Put ARN.png" width=50%>
