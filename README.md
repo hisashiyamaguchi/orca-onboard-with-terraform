@@ -25,7 +25,7 @@ Grab your Orca Security tenant UUID. You should reach out to Orca representative
 </div>
 <br>
 
-Put your tenant UUID on **role_external_id** in (main.tf)[https://github.com/hisashiyamaguchi/orca-onboard-with-terraforma/blob/main/aws/examples/saas/default/main.tf].
+Put your tenant UUID on **role_external_id** in [main.tf](https://github.com/hisashiyamaguchi/orca-onboard-with-terraforma/blob/main/aws/examples/saas/default/main.tf).
 <br>
 
 Init and apply. You're going to create Orca IAM Policies & Role on your AWS account.
@@ -79,7 +79,7 @@ Apply complete! Resources: 15 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-orca_role_arn = "arn:aws:iam::927556698342:role/OrcaSecurityRole"
+orca_role_arn = "arn:aws:iam::xxxx:role/OrcaSecurityRole"
 ```
 <br>
 
