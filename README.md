@@ -6,7 +6,7 @@ Onboard your cloud accounts on Orca Security with Terraform! The repo is a quick
 
 ## Prerequisites
 - Orca Security free trial license - visit [Orca Security](https://orca.security/lp/cloud-security-risk-assessment/) if you don't have a free trial license.
-- AWS account.
+- AWS account & AWS CLI. **Your AWS CLI should be properly configured!**
 - GitHub account.
 - MacBook with GitHub CLI and Terrafrom.
 <br>
